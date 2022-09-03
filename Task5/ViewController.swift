@@ -57,10 +57,8 @@ extension ViewController {
             }
         } else if circles.contains(where: { $0.alpha == 0}) {
             for circle in circles {
-                if circle.alpha == 0 {
-                    circle.zoomAnimation()
-                    continue
-                }
+                circle.zoomAnimation()
+                
             }
         }
     }
