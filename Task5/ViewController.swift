@@ -8,9 +8,8 @@
 import UIKit
 
 class ViewController: UIViewController {
-
+    
     var circles: [CircleView] = []
-    var isAnimated = true
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -18,18 +17,26 @@ class ViewController: UIViewController {
     }
     
     override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         getAnimationCircles()
     }
     
     private func drawCircles() {
         var number = 1
-        while number <= 5 {
+        while number <= 20 {
             let randomFrame = generateRandomFrame()
             let circleView = CircleView(frame: randomFrame)
             guard (circles.filter { $0.isCrossing(circleView) }).isEmpty else { print(false); continue }
+            
+            circleView.layer.cornerRadius = circleView.frame.width / 2
+            
+            circleView.layer.masksToBounds = true
+            circleView.backgroundColor = .random
+            
             circles.append(circleView)
             number += 1
         }
+        
         circles.sort(by: { $0.frame.width < $1.frame.width})
         for circleView in circles {
             self.view.addSubview(circleView)
@@ -48,19 +55,12 @@ class ViewController: UIViewController {
     }
     
     private func getAnimationCircles() {
-        let timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] timer in
+        let timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] timer in
             
-            if self!.isAnimated {
-                for (index, circle) in self!.circles.enumerated() {
-                    circle.zoomAnimation(index: index)
-                }
-                self?.isAnimated = false
-                
-            } else if self!.circles.isEmpty {
-                self?.drawCircles()
-                for (index, circle) in self!.circles.enumerated() {
-                    circle.zoomAnimation(index: index)
-                }
+            guard let self = self else { return }
+            
+            for (index, circle) in self.circles.enumerated() {
+                self.zoomAnimation(circle: circle, index: index)
             }
         }
         timer.fire()
@@ -73,15 +73,41 @@ extension ViewController {
         
         guard let touch = touches.first else { return }
         
-        if circles.contains(where: { $0.alpha == 1}) && self.isAnimated == false{
+        if circles.contains(where: { $0.alpha == 1}) {
             for (index, circle) in circles.enumerated() {
                 let location = touch.location(in: circle)
                 if circle.bounds.contains(location) {
-                    circle.shrinkAnimation()
+                    shrinkAnimation(circle: circle)
                     circles.remove(at: index)
                 }
             }
         }
+    }
+}
+
+extension ViewController {
+    func shrinkAnimation(circle: CircleView) {
+        UIView.animate(withDuration: 0.2, delay: 0.1, options: [.curveEaseOut], animations: {
+            circle.transform = CGAffineTransform.identity.scaledBy(x: 0.2, y: 0.2)
+            circle.alpha = 0
+        }, completion: { if $0
+        { circle.removeFromSuperview() }
+        if self.circles.isEmpty {
+            self.drawCircles()
+            for (index, circle) in self.circles.enumerated() {
+                self.zoomAnimation(circle: circle, index: index)
+            }
+        }
+        })
+    }
+    
+    func zoomAnimation(circle: CircleView, index: Int) {
+        let animDuration = 0.2
+        circle.alpha = 0
+        UIView.animate(withDuration: animDuration, delay: animDuration * Double(index), options: [.curveEaseIn], animations: {
+            circle.transform = .identity
+            circle.alpha = 1
+        }, completion: nil)
     }
 }
 
@@ -93,24 +119,20 @@ extension UIView {
         let hypotenuse = sqrtf(powf(distance.0, 2) + powf(distance.1, 2))
         return hypotenuse - (firstParams.radius + secondParams.radius) <= 0 ? true : false
     }
-    
-    func shrinkAnimation() {
-       UIView.animate(withDuration: 3.0, delay: 0.5, options: [.curveEaseOut], animations: {
-        self.transform = CGAffineTransform.identity.scaledBy(x: 0.2, y: 0.2)
-        self.alpha = 0
-       }, completion: { if $0
-        { self.removeFromSuperview() } })
-   }
-   
-    func zoomAnimation(index: Int) {
-        let animDuration = 3.5
-        self.alpha = 0
-        UIView.animate(withDuration: animDuration, delay: animDuration * Double(index), options: [.curveEaseIn], animations: {
-            self.transform = .identity
-            self.alpha = 1
-        }, completion: nil)
-   }
 }
+
+extension UIColor {
+    static var random: UIColor {
+        return UIColor(red: .random(in: 0...1),
+                       green: .random(in: 0...1),
+                       blue: .random(in: 0...1), alpha: 1.0)
+    }
+}
+
+
+
+
+
 
 
 
